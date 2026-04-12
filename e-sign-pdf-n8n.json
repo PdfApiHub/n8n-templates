@@ -1,0 +1,223 @@
+{
+  "name": "Auto E-Sign PDF (Pro Template)",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [-432, 432],
+      "id": "trigger-node",
+      "name": "Watch Folder",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [-144, 432],
+      "id": "download-node",
+      "name": "Download File",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "signature_url",
+              "value": "https://example.com/signature.png"
+            },
+            {
+              "name": "output",
+              "value": "drive"
+            },
+            {
+              "name": "email",
+              "value": "user@example.com"
+            }
+          ],
+          "number": [
+            {
+              "name": "sign_x",
+              "value": 100
+            },
+            {
+              "name": "sign_y",
+              "value": 50
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config-node",
+      "name": "Set Signature Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [96, 432]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $binary.data.fileExtension }}",
+              "value2": "pdf"
+            }
+          ]
+        }
+      },
+      "id": "if-node",
+      "name": "Is PDF?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [304, 432]
+    },
+    {
+      "parameters": {
+        "resource": "watermark",
+        "sign_pdf_input_type": "file",
+        "sign_signature_url": "={{ $json.signature_url }}",
+        "sign_position": "custom",
+        "sign_x": "={{ $json.sign_x }}",
+        "sign_y": "={{ $json.sign_y }}",
+        "signAdvancedOptions": {}
+      },
+      "type": "n8n-nodes-pdf-api-hub.pdfSplitMerge",
+      "typeVersion": 1,
+      "position": [512, 400],
+      "id": "sign-node",
+      "name": "Sign PDF",
+      "credentials": {}
+    },
+    {
+      "parameters": {},
+      "id": "switch-node",
+      "name": "Output Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [704, 432]
+    },
+    {
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "OUTPUT_FOLDER_ID",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [896, 368],
+      "id": "upload-node",
+      "name": "Upload Signed File",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "your-email@example.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Signed PDF",
+        "text": "Your document has been signed successfully.",
+        "options": {}
+      },
+      "id": "email-node",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [896, 528],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "signed"
+            },
+            {
+              "name": "file",
+              "value": "={{ $json.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-node",
+      "name": "Log Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1104, 432]
+    }
+  ],
+  "connections": {
+    "Watch Folder": {
+      "main": [[{ "node": "Download File", "type": "main", "index": 0 }]]
+    },
+    "Download File": {
+      "main": [[{ "node": "Set Signature Config", "type": "main", "index": 0 }]]
+    },
+    "Set Signature Config": {
+      "main": [
+        [{ "node": "Is PDF?", "type": "main", "index": 0 }],
+        [{ "node": "Sign PDF", "type": "main", "index": 0 }]
+      ]
+    },
+    "Is PDF?": {
+      "main": [[{ "node": "Sign PDF", "type": "main", "index": 0 }]]
+    },
+    "Sign PDF": {
+      "main": [
+        [{ "node": "Upload Signed File", "type": "main", "index": 0 }],
+        [{ "node": "Output Router", "type": "main", "index": 0 }]
+      ]
+    },
+    "Output Router": {
+      "main": [
+        [{ "node": "Upload Signed File", "type": "main", "index": 0 }],
+        [{ "node": "Send Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": {
+      "main": [[{ "node": "Log Output", "type": "main", "index": 0 }]]
+    },
+    "Upload Signed File": {
+      "main": [[{ "node": "Log Output", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}
