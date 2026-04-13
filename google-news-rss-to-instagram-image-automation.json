@@ -1,0 +1,689 @@
+{
+  "name": "Auto-post Google News to Instagram with OpenAI, PDF API Hub & Google Sheets",
+  "description": "Automatically fetch trending news from Google News RSS, rewrite headlines into viral captions with OpenAI, generate branded breaking-news images using PDF API Hub's HTML-to-Image API, and publish directly to Instagram — all tracked in a Google Sheet.\n\n**How it works:**\n1. A schedule trigger runs every hour and fetches Google News RSS for a configurable topic\n2. Articles are deduplicated against existing rows in a Google Sheet\n3. New headlines are rewritten by OpenAI into short, punchy, viral-style captions\n4. A branded mobile-format image is generated from an HTML template via PDF API Hub\n5. The image is posted to Instagram and the sheet row is marked as posted\n\n**Setup steps:**\n1. Create a Google Sheet with a tab named `rss` and these columns: guid, title, pubDate, source, link, topic, media_url, is_posted, created_at, updated_at\n2. Connect your Google Sheets, OpenAI, PDF API Hub, and Instagram credentials\n3. Change the topic in the Set Topic node to your desired search term\n4. Customize the HTML template in the Generate News Image node to match your brand\n5. Activate the workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 📰 Google News RSS → Clickbait → Image → Instagram\n\n**What this workflow does:**\n1. Fetches trending news from Google News RSS (configurable topic)\n2. Deduplicates against a Google Sheet so the same story isn't posted twice\n3. Rewrites the headline into a short, viral-style caption using OpenAI\n4. Generates a branded breaking-news image via PDF API Hub (HTML → Image)\n5. Publishes to Instagram and marks the row as posted\n\n**Before you start — set up your Google Sheet:**\nCreate a Google Sheet with a tab named `rss` and these column headers in row 1:\n\n| guid | title | pubDate | source | link | topic | media_url | is_posted | created_at | updated_at |\n\nLeave the rows empty — the workflow will populate them automatically.\n\n**Credentials needed:**\n- Google Sheets OAuth2\n- OpenAI API key\n- PDF API Hub API key (get one at pdfapihub.com)\n- Instagram API credentials",
+        "height": 460,
+        "width": 820,
+        "color": 4
+      },
+      "id": "b1a2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "Sticky Note - Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2060,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ⏰ Trigger & Config\n\nThe workflow runs **every hour** via a schedule trigger.\n\n**Config node:** Change the `topic` value to any search term you want (e.g. `ai`, `cricket`, `bitcoin`, `tech`).\n\nThis topic is used to build the Google News RSS URL.",
+        "height": 260,
+        "width": 380,
+        "color": 6
+      },
+      "id": "c2b3a4d5-f6e7-4b8a-9d0c-1e2f3a4b5c6d",
+      "name": "Sticky Note - Trigger",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2060,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📋 Fetch & Deduplicate\n\n1. **Fetch Sheet Rows** — Reads all existing rows from your Google Sheet to check what's already been posted.\n2. **RSS Feed** — Pulls the latest articles from Google News for your topic.\n3. **Dedupe** — Compares RSS items against existing `pubDate` values in the sheet. Only the latest non-duplicate article passes through.\n\n⚠️ Make sure your sheet has the `pubDate` column populated for deduplication to work.",
+        "height": 280,
+        "width": 560,
+        "color": 3
+      },
+      "id": "d3c4b5a6-e7f8-4c9b-0a1d-2e3f4a5b6c7d",
+      "name": "Sticky Note - Fetch & Dedupe",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 💾 Save & Rewrite\n\n1. **Insert Row** — Saves the new article to the sheet immediately (with `is_posted = false`) so it won't be picked up again.\n2. **AI Rewrite** — Uses OpenAI (GPT-4o-mini) to rewrite the title into a short, punchy, viral-style message (max 50 tokens, no emoji).\n\n💡 You can swap the OpenAI model or tweak the prompt in the LLM Chain node.",
+        "height": 360,
+        "width": 380,
+        "color": 5
+      },
+      "id": "e4d5c6b7-f8e9-4d0a-1b2c-3e4f5a6b7c8d",
+      "name": "Sticky Note - Save & Rewrite",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🖼️ Generate Image\n\nConverts the rewritten headline into a **branded breaking-news image** (375×812 mobile format) using PDF API Hub's HTML-to-Image API.\n\nThe HTML template includes:\n- BREAKING badge + LIVE indicator\n- Gradient dark background\n- The rewritten headline as the main text\n\n✏️ Customize the HTML/CSS in the node to match your brand colors, logo, and style.",
+        "height": 300,
+        "width": 350,
+        "color": 2
+      },
+      "id": "f5e6d7c8-a9b0-4e1f-2c3d-4e5f6a7b8c9d",
+      "name": "Sticky Note - Image Generation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📲 Publish & Track\n\n1. **Publish to Instagram** — Posts the generated image with a caption.\n2. **Update media_url** — Saves the image URL back to the sheet.\n3. **Mark as posted** — Sets `is_posted = TRUE` so the article is tracked.\n\n⚠️ The Instagram node requires a connected Facebook/Instagram Business account.",
+        "height": 300,
+        "width": 380,
+        "color": 1
+      },
+      "id": "a6f7e8d9-b0c1-4f2e-3d4c-5e6f7a8b9c0d",
+      "name": "Sticky Note - Publish & Track",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📊 Google Sheet Structure\n\nYour Google Sheet **must** have a tab named `rss` with these exact column headers in **Row 1**:\n\n| Column | Purpose |\n|---|---|\n| `guid` | Unique ID generated per row |\n| `title` | Original article title |\n| `pubDate` | Publication date (used for dedup) |\n| `source` | News source |\n| `link` | Original article URL |\n| `topic` | Search topic |\n| `media_url` | Generated image URL |\n| `is_posted` | TRUE/FALSE tracking flag |\n| `created_at` | Timestamp |\n| `updated_at` | Timestamp |\n\n🔗 Copy this template sheet: Create a new Google Sheet → rename the first tab to `rss` → add the headers above.",
+        "height": 480,
+        "width": 420,
+        "color": 7
+      },
+      "id": "b7a8f9e0-c1d2-4a3b-4e5f-6a7b8c9d0e1f",
+      "name": "Sticky Note - Sheet Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "a89a2792-3761-464e-8d66-b4894221b07a",
+      "name": "Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1984,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "topic",
+              "value": "ipl"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9c88b835-6f04-49ba-bf5d-4f450e5b119c",
+      "name": "Set Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "rss",
+          "cachedResultUrl": ""
+        },
+        "options": {}
+      },
+      "id": "60e90352-5b6d-445f-ac8d-4dc86dc8f336",
+      "name": "Fetch Sheet Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -1456,
+        660
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&oc=11&q={{ $('Set Topic').item.json.topic }}",
+        "options": {}
+      },
+      "id": "607cb8b6-7385-41d9-943c-b38d26c2e604",
+      "name": "Google News RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -1216,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all existing pubDates from the sheet\nconst sheetItems = $('Fetch Sheet Rows').all();\nconst existingDates = new Set(\n  sheetItems\n    .map(item => item.json.pubDate)\n    .filter(Boolean)\n);\n\n// Get all RSS items from previous node\nconst rssItems = items;\n\n// Sort by pubDate (latest first)\nconst sortedItems = rssItems.sort((a, b) => {\n  return new Date(b.json.pubDate) - new Date(a.json.pubDate);\n});\n\n// Find first non-duplicate\nfor (const item of sortedItems) {\n  if (!existingDates.has(item.json.pubDate)) {\n    return [item];\n  }\n}\n\nreturn [];"
+      },
+      "id": "f7ec41dd-8842-4f69-a5a1-e092bfd82825",
+      "name": "Deduplicate Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "rss",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $json.title }}",
+            "pubDate": "={{ $json.pubDate }}",
+            "link": "={{ $json.link }}",
+            "is_posted": false,
+            "guid": "={{ Date.now().toString(36) + Math.random().toString(36).substring(2, 10) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "guid",
+              "displayName": "guid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pubDate",
+              "displayName": "pubDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_posted",
+              "displayName": "is_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "921b4e11-8ff4-4614-89f0-c8d006fba244",
+      "name": "Save to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -784,
+        660
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a viral news writer.\nINPUT: {{$json[\"title\"]}}\n\nINSTRUCTIONS:\n- Rewrite into a short, exciting, high-impact message\n- Max 50 tokens total\n- 1–2 lines only\n- Add urgency or emotion\n- No emoji\n- Keep it believable (no fake hype)\n\nOUTPUT (STRICT): Just the message text, nothing else.",
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -544,
+        660
+      ],
+      "id": "5fc995bb-6b28-4155-a6a2-bddd84c76b3e",
+      "name": "Rewrite Headline (AI)"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "maxTokens": 500
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -544,
+        900
+      ],
+      "id": "03421c74-5552-41da-811a-9b743b9d2d73",
+      "name": "OpenAI GPT-4o-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "imageGeneration",
+        "operation": "htmlToImage",
+        "image_html_content": "=<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"/>\n\n  <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap\" rel=\"stylesheet\">\n\n  <style>\n    * {\n      margin: 0;\n      padding: 0;\n      box-sizing: border-box;\n      font-family: 'Poppins', sans-serif;\n    }\n\n    body {\n      width: 100%;\n      height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      background: #000;\n    }\n\n    .screen {\n      width: 360px;\n      height: 640px;\n      border-radius: 32px;\n      overflow: hidden;\n      position: relative;\n      background: linear-gradient(160deg, #0f2027, #203a43, #2c5364);\n      box-shadow: 0 20px 60px rgba(0,0,0,0.6);\n      padding: 24px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between;\n    }\n\n    .top {\n      display: flex;\n      justify-content: space-between;\n      align-items: center;\n      font-size: 14px;\n      opacity: 0.9;\n    }\n\n    .badge {\n      padding: 6px 12px;\n      font-size: 11px;\n      font-weight: 600;\n      border-radius: 999px;\n      background: linear-gradient(90deg, #ff416c, #ff4b2b);\n      color: #fff;\n    }\n\n    .live {\n      display: flex;\n      align-items: center;\n      gap: 6px;\n      font-weight: 600;\n      font-size: 12px;\n      color: #fff;\n    }\n\n    .dot {\n      width: 8px;\n      height: 8px;\n      background: #ff3b30;\n      border-radius: 50%;\n      box-shadow: 0 0 8px rgba(255, 59, 48, 0.8);\n    }\n\n    .content {\n      margin-top: 40px;\n      flex-grow: 1;\n      display: flex;\n      align-items: center;\n    }\n\n    .title {\n      font-size: 28px;\n      font-weight: 800;\n      line-height: 1.4;\n      color: #fff;\n    }\n\n    .bottom {\n      font-size: 13px;\n      opacity: 0.7;\n    }\n\n    .brand {\n      margin-top: 6px;\n      font-size: 15px;\n      font-weight: 600;\n      color: #ffffff;\n    }\n\n    .glow {\n      position: absolute;\n      width: 200px;\n      height: 200px;\n      background: radial-gradient(circle, rgba(255,255,255,0.15), transparent);\n      top: -50px;\n      right: -50px;\n    }\n  </style>\n</head>\n\n<body>\n  <div class=\"screen\">\n\n    <div class=\"glow\"></div>\n\n    <div class=\"top\">\n      <div class=\"badge\">BREAKING</div>\n\n      <div class=\"live\">\n        <div class=\"dot\"></div>\n        LIVE\n      </div>\n    </div>\n\n    <div class=\"content\">\n      <div class=\"title\">\n        {title}\n      </div>\n    </div>\n\n    <div class=\"bottom\">\n      Powered by your news engine ⚡\n      <div class=\"brand\">YourBrand</div>\n    </div>\n\n  </div>\n</body>\n</html>",
+        "image_width": 375,
+        "image_height": 812,
+        "image_viewport_preset": "375x812",
+        "image_dynamic_params": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "image_dynamic_params_manual": {
+          "params": [
+            {
+              "key": "=title",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "imageAdvancedOptions": {}
+      },
+      "type": "n8n-nodes-pdf-api-hub.pdfSplitMerge",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        660
+      ],
+      "id": "3b16a2d1-bfbc-40fb-a148-f6f1a3f15f81",
+      "name": "Generate News Image",
+      "credentials": {
+        "pdfapihubApi": {
+          "id": "",
+          "name": "PDF API Hub"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "node": "me",
+        "imageUrl": "={{ $json.image_url }}",
+        "caption": "Latest Breaking News",
+        "additionalFields": {}
+      },
+      "type": "@mookielianhd/n8n-nodes-instagram.instagram",
+      "typeVersion": 1,
+      "position": [
+        60,
+        560
+      ],
+      "id": "ee1e4983-a8c9-4f79-85a8-6afdffebeec9",
+      "name": "Post to Instagram",
+      "credentials": {
+        "instagramApi": {
+          "id": "",
+          "name": "Instagram API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "rss",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "media_url": "={{ $json.image_url }}",
+            "guid": "={{ $('Save to Sheet').item.json.guid }}"
+          },
+          "matchingColumns": [
+            "guid"
+          ],
+          "schema": [
+            {
+              "id": "guid",
+              "displayName": "guid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "media_url",
+              "displayName": "media_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -112,
+        880
+      ],
+      "id": "d96f63fc-3952-4dbd-b7c7-13b65bfa524c",
+      "name": "Save Image URL to Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_SHEET_NAME",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "rss",
+          "cachedResultUrl": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "guid": "={{ $('Save to Sheet').item.json.guid }}",
+            "is_posted": "TRUE"
+          },
+          "matchingColumns": [
+            "guid"
+          ],
+          "schema": [
+            {
+              "id": "guid",
+              "displayName": "guid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_posted",
+              "displayName": "is_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        210,
+        440
+      ],
+      "id": "fe174346-d8c1-4f57-b731-ab3cf39e01e4",
+      "name": "Mark as Posted",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Set Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Topic": {
+      "main": [
+        [
+          {
+            "node": "Fetch Sheet Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Sheet Rows": {
+      "main": [
+        [
+          {
+            "node": "Google News RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google News RSS": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate Articles": {
+      "main": [
+        [
+          {
+            "node": "Save to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Rewrite Headline (AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rewrite Headline (AI)": {
+      "main": [
+        [
+          {
+            "node": "Generate News Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate News Image": {
+      "main": [
+        [
+          {
+            "node": "Post to Instagram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Save Image URL to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Instagram": {
+      "main": [
+        [
+          {
+            "node": "Mark as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Rewrite Headline (AI)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "categories": ["Marketing & Growth", "Communication"]
+  },
+  "tags": [
+    { "name": "Marketing" },
+    { "name": "RSS" },
+    { "name": "Social Media" },
+    { "name": "AI" },
+    { "name": "Instagram" },
+    { "name": "Google Sheets" }
+  ]
+}
